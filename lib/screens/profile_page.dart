@@ -1,29 +1,31 @@
 import 'package:chargemode/controller/auth_controller.dart';
 import 'package:chargemode/screens/bottombar.dart';
 import 'package:chargemode/screens/login.dart';
+import 'package:chargemode/services/preference_service.dart';
 import 'package:chargemode/utils/constants/app_color.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfilePage extends StatefulWidget {
-  ProfilePage({super.key, required this.firstName});
-  final String firstName;
+  ProfilePage({super.key});
   @override
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  Future<void> logout() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+  @override
+  void initState() {
+    context.read<AuthController>().fetchData(context);
+    // TODO: implement initState
+    super.initState();
   }
 
-  int _currentIndex = 0;
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Padding(
+    var provider=context.watch<AuthController>();
+    return  provider.loading ? Center(child: CircularProgressIndicator(color: AppColor.primaryColor,),) : Padding(
         padding: EdgeInsets.all(20.0),
         child: SingleChildScrollView(
           child: Column(
@@ -36,8 +38,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   children: [
                     Text('Hello',
                         style: Theme.of(context).textTheme.bodyMedium),
-                    Text(widget.firstName,
-                        style: Theme.of(context).textTheme.bodyLarge),
+                    provider.user!=null?   Text(provider.user?["firstName"],
+                        style: Theme.of(context).textTheme.bodyLarge) : Text('no user')
                   ],
                 ),
               ),
@@ -130,26 +132,33 @@ class _ProfilePageState extends State<ProfilePage> {
                 style: ElevatedButton.styleFrom(
                   primary: AppColor.primaryColor,
                 ),
-                onPressed: () async {
-                  await logout();
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => Login()),
-                  );
+                onPressed: ()  {
+                  context
+                      .read<AuthController>()
+                      .logOut(context);
+
                 },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.power_settings_new_rounded,
+                child: Consumer<AuthController>(
+                  builder: (context, provider, child) {
+                    return provider.loading
+                        ? CircularProgressIndicator(
                       color: Colors.white,
-                    ),
-                    Text('Logout',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: AppColor.primaryColorLight_l)),
-                  ],
+                    )
+                        : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.power_settings_new_rounded,
+                          color: Colors.white,
+                        ),
+                        Text('Logout',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: AppColor.primaryColorLight_l)),
+                      ],
+                    );
+                  }
                 ),
               ),
               SizedBox(
@@ -177,17 +186,8 @@ class _ProfilePageState extends State<ProfilePage> {
             ],
           ),
         ),
-      ),
-      bottomNavigationBar: BottomBar(
-        firstName: widget.firstName,
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-      ),
-    );
+      );
+
   }
 
   Widget _buildSection(String text, image) {

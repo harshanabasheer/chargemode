@@ -1,4 +1,6 @@
 import 'package:chargemode/controller/auth_controller.dart';
+import 'package:chargemode/controller/bottomBarController.dart';
+import 'package:chargemode/screens/bottombar.dart';
 import 'package:chargemode/screens/home_page.dart';
 import 'package:chargemode/screens/splash_screen.dart';
 import 'package:chargemode/services/preference_service.dart';
@@ -15,6 +17,8 @@ void main() async{
 
   runApp(MultiProvider(providers: [
     ChangeNotifierProvider(create: (_) => AuthController()),
+    ChangeNotifierProvider(create: (_) => BottomBarController()),
+
   ],
     child: const MyApp(),
   ));
@@ -31,7 +35,7 @@ class MyApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         darkTheme: AppTheme.darkTheme,
         debugShowCheckedModeBanner: false,
-        home:LocalStorage.isOtpVerified? HomePage() : const SplashScreen(),
+        home:LocalStorage.isOtpVerified? BottomBar() : const SplashScreen(),
 
       ),
     );

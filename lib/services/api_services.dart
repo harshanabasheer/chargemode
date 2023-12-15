@@ -44,8 +44,8 @@ class ApiService {
         },
         body: jsonEncode({
           'mobile': phone,
-          'first_name': firstName,
-          'last_name': lastName,
+          'firstName': firstName,
+          'lastName': lastName,
           'email': email
         }));
     if (responce.statusCode == 200) {
@@ -76,21 +76,83 @@ class ApiService {
     }
   }
 
-  Future<String> logout(String refreshToken) async {
-    final url = Uri.parse("${baseUrl}logout");
-    var responce = await http.post(
-      url,
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(
-        {'refreshToken': refreshToken},
-      ),
-    );
-    if (responce.statusCode == 200) {
-      return "Logout successfully";
-    } else {
-      throw Exception("Failed");
+
+  Future<String?> refreshAccessToken(String refreshToken) async {
+    try {
+      final refreshUrl = Uri.parse("${baseUrl}refresh");
+      var refreshResponse = await http.post(
+        refreshUrl,
+        headers: <String, String>{
+          'Content-Type': 'application/json; charset=UTF-8',
+        },
+        body: jsonEncode({'refreshToken': refreshToken}),
+      );
+      if (refreshResponse.statusCode == 200) {
+        var responseBody = jsonDecode(refreshResponse.body);
+        var newAccessToken = responseBody['data']['accessToken'];
+        return newAccessToken;
+      } else {
+        throw Exception("Token refresh failed: ${refreshResponse.statusCode}");
+      }
+    } catch (e) {
+      throw Exception("Token refresh failed: $e");
     }
   }
+
+  Future<Map<String,dynamic>> getUserDeatail(String refreshToken) async {
+    try {
+      var refreshedAccessToken = await refreshAccessToken(refreshToken);
+      if (refreshedAccessToken != null) {
+        final url = Uri.parse("$baseUrl$appVersion/get-customer");
+        var response = await http.get(
+          url,
+          headers: <String, String>{
+            'Authorization': 'Bearer $refreshedAccessToken',
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+        );
+        if (response.statusCode == 200) {
+          Map<String,dynamic> data =  jsonDecode(response.body)["data"]["user"][0];
+          return data;
+        } else {
+          throw Exception("Fetch data failed: ${response.statusCode}");
+        }
+      } else {
+        throw Exception("Refreshed access token is null");
+      }
+    } catch (e) {
+      throw Exception("fetch data failed: $e");
+    }
+  }
+
+
+  Future<String> logout(String refreshToken) async {
+    try {
+      var refreshedAccessToken = await refreshAccessToken(refreshToken);
+      if (refreshedAccessToken != null) {
+        final url = Uri.parse("${baseUrl}logout");
+        var response = await http.post(
+          url,
+          headers: <String, String>{
+            'Authorization': 'Bearer $refreshedAccessToken', // Using refreshed access token here
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+          body: jsonEncode({
+            'refreshToken': refreshToken
+          }),
+        );
+        if (response.statusCode == 200) {
+          return "Logout successful";
+        } else {
+          throw Exception("Logout failed: ${response.statusCode}");
+        }
+      } else {
+        throw Exception("Refreshed access token is null");
+      }
+    } catch (e) {
+      throw Exception("Logout failed: $e");
+    }
+  }
+
+
 }

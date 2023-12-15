@@ -13,6 +13,11 @@ class LocalStorage {
     localStorage?.setBool("otpverify", true);
   }
 
+  static clearLocalStorage(){
+
+     localStorage?.clear();
+  }
+
   static getVerified() {
     return localStorage?.getBool("otpverify");
   }

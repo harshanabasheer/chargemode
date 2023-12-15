@@ -1,3 +1,6 @@
+import 'package:chargemode/screens/bottombar.dart';
+import 'package:chargemode/screens/home_page.dart';
+import 'package:chargemode/screens/login.dart';
 import 'package:chargemode/screens/otp_page.dart';
 import 'package:chargemode/screens/update_profile.dart';
 import 'package:chargemode/services/api_services.dart';
@@ -8,6 +11,7 @@ import 'package:chargemode/screens/profile_page.dart';
 class AuthController extends ChangeNotifier {
   bool loading = false;
   bool resendTime = false;
+  Map<String,dynamic>?user;
   final ApiService apiService = ApiService();
 
   void sendOtp(String phone, BuildContext context) async {
@@ -86,8 +90,7 @@ class AuthController extends ChangeNotifier {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-              builder: (context) => ProfilePage(
-                    firstName: firstName,
+              builder: (context) => BottomBar(
                   )),
         );
       }
@@ -140,25 +143,61 @@ class AuthController extends ChangeNotifier {
       }
     }
   }
-
-  Future<void> logOut(BuildContext context) async {
+  Future<void> fetchData(BuildContext context) async {
     try {
+      loading =true;
+      notifyListeners();
       final refreshToken = LocalStorage.getToken();
-      String result = await apiService.logout(refreshToken);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(result)));
-      }
+      user = await apiService.getUserDeatail(refreshToken);
+      loading =false;
+      notifyListeners();
     } catch (e) {
+      loading =false;
+      notifyListeners();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              e.toString(),
+              'An error occurred during fetch data: ${e.toString()}',
             ),
           ),
         );
       }
     }
   }
+
+  Future<void> logOut(BuildContext context) async {
+    try {
+      loading =true;
+      notifyListeners();
+      final refreshToken = LocalStorage.getToken();
+
+        String result = await apiService.logout(refreshToken);
+
+        if (context.mounted) {
+
+          LocalStorage.clearLocalStorage();
+          Navigator.pushReplacement(context,MaterialPageRoute(builder: (context) => Login(),),);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result)),
+          );
+        }
+      loading =false;
+      notifyListeners();
+    } catch (e) {
+      loading =false;
+      notifyListeners();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'An error occurred during logout: ${e.toString()}',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+
 }
